@@ -115,6 +115,7 @@ const char *
 send_request__@('__'.join(service.structure_type.namespaces))__@(service.structure_type.name)(
   void * untyped_requester, const void * untyped_ros_request, int64_t * sequence_number)
 {
+/*
   using SampleT = rosidl_typesupport_opensplice_cpp::Sample<@(__dds_msg_type_prefix)_Request_>;
 
   SampleT request;
@@ -136,6 +137,7 @@ send_request__@('__'.join(service.structure_type.namespaces))__@(service.structu
     return error_string;
   }
   *sequence_number = request.sequence_number_;
+*/
 
   return nullptr;
 }
@@ -145,6 +147,7 @@ take_request__@('__'.join(service.structure_type.namespaces))__@(service.structu
   void * untyped_responder, rmw_request_id_t * request_header, void * untyped_ros_request,
   bool * taken)
 {
+/*
   using ResponderT = rosidl_typesupport_opensplice_cpp::Responder<
     @(__dds_msg_type_prefix)_Request_,
     @(__dds_msg_type_prefix)_Response_
@@ -176,6 +179,7 @@ take_request__@('__'.join(service.structure_type.namespaces))__@(service.structu
     return nullptr;
   }
   *taken = false;
+*/
   return nullptr;
 }
 
@@ -184,6 +188,7 @@ send_response__@('__'.join(service.structure_type.namespaces))__@(service.struct
   void * untyped_responder, const rmw_request_id_t * request_header,
   const void * untyped_ros_response)
 {
+/*
   rosidl_typesupport_opensplice_cpp::Sample<@(__dds_msg_type_prefix)_Response_> response;
   const rosidl_message_type_support_t * ts =
     ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(rosidl_typesupport_opensplice_c, @(', '.join(service.structure_type.namespaces)), @(service.structure_type.name)_Response)();
@@ -201,6 +206,7 @@ send_response__@('__'.join(service.structure_type.namespaces))__@(service.struct
   if (error_string) {
     return error_string;
   }
+*/
   return nullptr;
 }
 
@@ -209,6 +215,7 @@ take_response__@('__'.join(service.structure_type.namespaces))__@(service.struct
   void * untyped_requester, rmw_request_id_t * request_header, void * untyped_ros_response,
   bool * taken)
 {
+/*
   using RequesterT = rosidl_typesupport_opensplice_cpp::Requester<
     @(__dds_msg_type_prefix)_Request_,
     @(__dds_msg_type_prefix)_Response_
@@ -231,6 +238,7 @@ take_response__@('__'.join(service.structure_type.namespaces))__@(service.struct
       static_cast<void *>(&response.data()), untyped_ros_response);
     return nullptr;
   }
+*/
 
   return nullptr;
 }

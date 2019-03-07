@@ -259,29 +259,25 @@ fail:
     return estr;
   }
 
-
   DDS::DataReader * get_request_datareader()
   {
     return request_datareader_;
   }
 
-  const char * take_request(Sample<RequestT> & request, bool * taken)
-  noexcept
+  DDS::DataWriter * get_response_datawriter()
   {
-    return TemplateDataReader<Sample<RequestT>>::take_sample(request_datareader_, request, taken);
+    return response_datawriter_;
   }
 
-  const char * send_response(const rmw_request_id_t & request_header, Sample<ResponseT> & response)
-  noexcept
+  template<typename SampleT>
+  void update_sample(const rmw_request_id_t & request_header, SampleT & sample) noexcept
   {
-    response.sequence_number_ = request_header.sequence_number;
+    sample.sequence_number_ = request_header.sequence_number;
     std::memcpy(
-      &response.client_guid_0_, &request_header.writer_guid[0], sizeof(response.client_guid_0_));
+      &sample.client_guid_0_, &request_header.writer_guid[0], sizeof(sample.client_guid_0_));
     std::memcpy(
-      &response.client_guid_1_, &request_header.writer_guid[0] + sizeof(response.client_guid_0_),
-      sizeof(response.client_guid_1_));
-
-    return TemplateDataWriter<Sample<ResponseT>>::write_sample(response_datawriter_, response);
+      &sample.client_guid_1_, &request_header.writer_guid[0] + sizeof(sample.client_guid_0_),
+      sizeof(sample.client_guid_1_));
   }
 
 private:

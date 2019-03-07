@@ -49,15 +49,6 @@
 namespace rosidl_typesupport_opensplice_cpp
 {
 
-template<typename T>
-class Sample;
-
-template<typename T>
-class TemplateDataReader;
-
-template<typename T>
-class TemplateDataWriter;
-
 template<typename RequestT, typename ResponseT>
 class Requester
 {
@@ -355,24 +346,22 @@ fail:
     return nullptr;
   }
 
-  const char * take_response(Sample<ResponseT> & response, bool * taken) noexcept
+  template<typename SampleT>
+  void update_request(SampleT & sample) noexcept
   {
-    return TemplateDataReader<Sample<ResponseT>>::take_sample(
-      response_datareader_, response, taken);
-  }
-
-  const char * send_request(Sample<RequestT> & request) noexcept
-  {
-    request.sequence_number_ = ++sequence_number_;
-    request.client_guid_0_ = writer_guid_.first;
-    request.client_guid_1_ = writer_guid_.second;
-
-    return TemplateDataWriter<Sample<RequestT>>::write_sample(request_datawriter_, request);
+    sample.sequence_number_ = ++sequence_number_;
+    sample.client_guid_0_ = writer_guid_.first;
+    sample.client_guid_1_ = writer_guid_.second;
   }
 
   DDS::DataReader * get_response_datareader()
   {
     return response_datareader_;
+  }
+
+  DDS::DataWriter * get_request_datawriter()
+  {
+    return request_datawriter_;
   }
 
 private:

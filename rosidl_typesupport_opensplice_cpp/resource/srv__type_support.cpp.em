@@ -70,22 +70,13 @@ __dds_sample_type_prefix = __dds_msg_pkg_prefix + '::Sample_' +  service.structu
 namespace rosidl_typesupport_opensplice_cpp
 {
 
-@[for suffix in ['_Request', '_Response']]@
-template<>
-class Sample<@(__dds_msg_type_prefix)@(suffix)_>
-  : public @(__dds_sample_type_prefix)@(suffix)_
-{
-public:
-  @(__dds_msg_type_prefix)@(suffix)_ & data()
-  {
-@[  if suffix == '_Request']@
-    return request_;
-@[  else]@
-    return response_;
-@[  end if]@
-  }
-};
+template<typename T>
+class TemplateDataReader;
 
+template<typename T>
+class TemplateDataWriter;
+
+@[for suffix in ['_Request', '_Response']]@
 template<>
 class TemplateDataReader<@(__dds_sample_type_prefix)@(suffix)_>
   : public @(__dds_sample_type_prefix)@(suffix)_DataReader
@@ -93,7 +84,7 @@ class TemplateDataReader<@(__dds_sample_type_prefix)@(suffix)_>
 public:
   static const char * take_sample(
     DDS::DataReader * datareader,
-    Sample<@(__dds_msg_type_prefix)@(suffix)_> & sample,
+    @(__dds_sample_type_prefix)@(suffix)_ & sample,
     bool * taken)
   noexcept
   {
@@ -142,7 +133,7 @@ public:
 
     *taken = (sample_infos.length() > 0 && sample_infos[0].valid_data);
     if (*taken) {
-      sample = reinterpret_cast<Sample<@(__dds_msg_type_prefix)@(suffix)_> &>(dds_messages[0]);
+      sample = reinterpret_cast<@(__dds_sample_type_prefix)@(suffix)_ &>(dds_messages[0]);
     }
     status = typed_datareader->return_loan(dds_messages, sample_infos);
     switch (status) {
@@ -176,22 +167,19 @@ public:
 };
 
 template<>
-class TemplateDataReader<Sample<@(__dds_msg_type_prefix)@(suffix)_>>
-  : public TemplateDataReader<@(__dds_sample_type_prefix)@(suffix)_>
-{
-};
-
-template<>
 class TemplateDataWriter<@(__dds_sample_type_prefix)@(suffix)_>
   : public @(__dds_sample_type_prefix)@(suffix)_DataWriter
 {
 public:
   static const char * write_sample(
     DDS::DataWriter * datawriter,
-    Sample<@(__dds_msg_type_prefix)@(suffix)_> & sample)
+    @(__dds_sample_type_prefix)@(suffix)_ & sample)
   noexcept
   {
-    @(__dds_sample_type_prefix)@(suffix)_DataWriter * typed_datawriter = _narrow(datawriter);
+    @(__dds_sample_type_prefix)@(suffix)_DataWriter * typed_datawriter = _narrow(datawriter); // TODO typed_datawriter is NULL
+    if (nullptr == typed_datawriter) {
+      fprintf(stderr, "_narrow(datawriter) returned nullptr\n");
+    }
 
     DDS::ReturnCode_t status = typed_datawriter->write(sample, DDS::HANDLE_NIL);
     switch (status) {
@@ -224,12 +212,6 @@ public:
         return "@(__dds_sample_type_prefix)@(suffix)_DataWriter.write: unknown return code";
     }
   }
-};
-
-template<>
-class TemplateDataWriter<Sample<@(__dds_msg_type_prefix)@(suffix)_>>
-  : public TemplateDataWriter<@(__dds_sample_type_prefix)@(suffix)_>
-{
 };
 
 @[end for]@
@@ -415,12 +397,11 @@ const char *
 send_request__@(service.structure_type.name)(
   void * untyped_requester, const void * untyped_ros_request, int64_t * sequence_number)
 {
-  using SampleT = rosidl_typesupport_opensplice_cpp::Sample<@(__dds_msg_type_prefix)_Request_>;
   using ROSRequestT = @('::'.join(service.structure_type.namespaces + [service.structure_type.name]))_Request;
 
-  SampleT request;
+  @(__dds_sample_type_prefix)_Request_ request;
   auto ros_request = reinterpret_cast<const ROSRequestT *>(untyped_ros_request);
-  @('::'.join(service.structure_type.namespaces))::typesupport_opensplice_cpp::convert_ros_message_to_dds(*ros_request, request.data());
+  @('::'.join(service.structure_type.namespaces))::typesupport_opensplice_cpp::convert_ros_message_to_dds(*ros_request, request.request_);
 
   using RequesterT = rosidl_typesupport_opensplice_cpp::Requester<
     @(__dds_msg_type_prefix)_Request_,
@@ -429,7 +410,9 @@ send_request__@(service.structure_type.name)(
 
   auto requester = reinterpret_cast<RequesterT *>(untyped_requester);
 
-  const char * error_string = requester->send_request(request);
+  requester->update_request(request);
+  const char * error_string = rosidl_typesupport_opensplice_cpp::TemplateDataWriter<@(__dds_sample_type_prefix)_Request_>::write_sample(
+    requester->get_request_datawriter(), request); // TODO called from here
   if (error_string) {
     return error_string;
   }
@@ -453,14 +436,15 @@ take_request__@(service.structure_type.name)(
 
   auto responder = reinterpret_cast<ResponderT *>(untyped_responder);
 
-  rosidl_typesupport_opensplice_cpp::Sample<@(__dds_msg_type_prefix)_Request_> request;
-  const char * error_string = responder->take_request(request, taken);
+  @(__dds_sample_type_prefix)_Request_ request;
+  const char * error_string = rosidl_typesupport_opensplice_cpp::TemplateDataReader<@(__dds_sample_type_prefix)_Request_>::take_sample(
+    responder->get_request_datareader(), request, taken);
   if (error_string) {
     return error_string;
   }
 
   if (*taken) {
-    @('::'.join(service.structure_type.namespaces))::typesupport_opensplice_cpp::convert_dds_message_to_ros(request.data(), *ros_request);
+    @('::'.join(service.structure_type.namespaces))::typesupport_opensplice_cpp::convert_dds_message_to_ros(request.request_, *ros_request);
 
     request_header->sequence_number = request.sequence_number_;
     std::memcpy(
@@ -482,9 +466,9 @@ send_response__@(service.structure_type.name)(
   const void * untyped_ros_response)
 {
   using ROSResponseT = @('::'.join(service.structure_type.namespaces + [service.structure_type.name]))_Response;
-  rosidl_typesupport_opensplice_cpp::Sample<@(__dds_msg_type_prefix)_Response_> response;
+  @(__dds_sample_type_prefix)_Response_ response;
   auto ros_response = reinterpret_cast<const ROSResponseT *>(untyped_ros_response);
-  @('::'.join(service.structure_type.namespaces))::typesupport_opensplice_cpp::convert_ros_message_to_dds(*ros_response, response.data());
+  @('::'.join(service.structure_type.namespaces))::typesupport_opensplice_cpp::convert_ros_message_to_dds(*ros_response, response.response_);
 
 
   using ResponderT = rosidl_typesupport_opensplice_cpp::Responder<
@@ -493,7 +477,9 @@ send_response__@(service.structure_type.name)(
   >;
   auto responder = reinterpret_cast<ResponderT *>(untyped_responder);
 
-  const char * error_string = responder->send_response(*request_header, response);
+  responder->update_sample(*request_header, response);
+  const char * error_string = rosidl_typesupport_opensplice_cpp::TemplateDataWriter<@(__dds_sample_type_prefix)_Response_>::write_sample(
+    responder->get_response_datawriter(), response);
   if (error_string) {
     return error_string;
   }
@@ -514,8 +500,10 @@ take_response__@(service.structure_type.name)(
   >;
   auto requester = reinterpret_cast<RequesterT *>(untyped_requester);
 
-  rosidl_typesupport_opensplice_cpp::Sample<@(__dds_msg_type_prefix)_Response_> response;
-  const char * error_string = requester->take_response(response, taken);
+  @(__dds_sample_type_prefix)_Response_ response;
+
+  const char * error_string = rosidl_typesupport_opensplice_cpp::TemplateDataReader<@(__dds_sample_type_prefix)_Response_>::take_sample(
+    requester->get_response_datareader(), response, taken);
   if (error_string) {
     return error_string;
   }
@@ -523,7 +511,7 @@ take_response__@(service.structure_type.name)(
     request_header->sequence_number = response.sequence_number_;
 
     @('::'.join(service.structure_type.namespaces))::typesupport_opensplice_cpp::convert_dds_message_to_ros(
-      response.data(), *ros_response);
+      response.response_, *ros_response);
     return nullptr;
   }
 
